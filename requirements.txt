@@ -1,0 +1,10 @@
+sentence-transformers
+faiss-cpu
+numpy
+pandas
+PyPDF2
+tqdm
+streamlit
+langchain
+transformers
+torch
