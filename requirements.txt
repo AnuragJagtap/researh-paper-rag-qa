@@ -8,3 +8,4 @@ streamlit
 langchain
 transformers
 torch
+pymupdf

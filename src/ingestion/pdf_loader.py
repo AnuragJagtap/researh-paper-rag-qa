@@ -1,80 +1,50 @@
+import fitz  # PyMuPDF
 import os
-import json
-from PyPDF2 import PdfReader
-from tqdm import tqdm
+from .text_cleaner import clean_text
+
+def extract_text_from_pdf(pdf_path):
+    """
+    Extracts clean text from a PDF using PyMuPDF
+    """
+    doc = fitz.open(pdf_path)
+    text = ""
+
+    for page in doc:
+        text += page.get_text("text") + "\n"
+
+    return text
 
 
-class PDFLoader:
-    def __init__(self, data_path):
-        self.data_path = data_path
+def load_pdfs_from_folder(folder_path):
+    """
+    Loads all PDFs from a folder and returns a list of documents
+    """
+    documents = []
 
-    def extract_text_from_pdf(self, file_path):
-        """
-        Extract text page-by-page with metadata
-        """
-        reader = PdfReader(file_path)
-        pages_data = []
+    for file in os.listdir(folder_path):
+        if file.endswith(".pdf"):
+            full_path = os.path.join(folder_path, file)
+            text = extract_text_from_pdf(full_path)
 
-        for page_num, page in enumerate(reader.pages):
-            try:
-                text = page.extract_text()
-                if text:
-                    pages_data.append({
-                        "page": page_num + 1,
-                        "text": text
-                    })
-            except Exception as e:
-                print(f"[ERROR] Page {page_num} in {file_path}: {e}")
+            documents.append({
+                "file_name": file,
+                "text": text
+            })
 
-        return pages_data
-
-    def clean_text(self, text):
-        """
-        Basic cleaning (can be extended later)
-        """
-        text = text.replace("\n", " ")
-        text = " ".join(text.split())  # remove extra spaces
-        return text
-
-    def load_all_pdfs(self):
-        """
-        Main function: loads all PDFs and returns structured data
-        """
-        all_documents = []
-
-        files = [f for f in os.listdir(self.data_path) if f.endswith(".pdf")]
-
-        print(f"[INFO] Found {len(files)} PDF files.")
-
-        for file in tqdm(files):
-            file_path = os.path.join(self.data_path, file)
-
-            pages = self.extract_text_from_pdf(file_path)
-
-            for page in pages:
-                cleaned_text = self.clean_text(page["text"])
-
-                all_documents.append({
-                    "source": file,
-                    "page": page["page"],
-                    "text": cleaned_text
-                })
-
-        return all_documents
-
-    def save_to_json(self, documents, output_path):
-        """
-        Save processed data
-        """
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(documents, f, indent=2)
-
-        print(f"[INFO] Saved processed data to {output_path}")
-    
+    return documents
 
 
-if __name__ == "__main__":
-    loader = PDFLoader("data/raw")
-    documents = loader.load_all_pdfs()
-    loader.save_to_json(documents, "data/processed/raw_texts.json")
-    
+def load_and_clean_documents(folder_path):
+    documents = load_pdfs_from_folder(folder_path)
+
+    cleaned_docs = []
+
+    for doc in documents:
+        cleaned_text = clean_text(doc["text"])
+
+        cleaned_docs.append({
+            "file_name": doc["file_name"],
+            "text": cleaned_text
+        })
+
+    return cleaned_docs
