@@ -11,3 +11,4 @@ torch
 pymupdf
 openai
 python-dotenv
+streamlit
