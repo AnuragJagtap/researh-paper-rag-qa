@@ -32,9 +32,15 @@ Question:
 {query}
 
 Instructions:
-- Answer ONLY from the context
-- If answer is not present, say "I don't know based on the provided documents"
-- Be concise and clear
+- Provide a detailed answer
+- Structure your response as:
+    1. Definition / Overview
+    2. Key Explanation
+    3. Important Points (if applicable)
+- Keep it clear and informative (5-8 sentences)
+- Do NOT hallucinate
+- If not found, say: "I don't know based on the provided documents"
+
 
 Answer:
 """

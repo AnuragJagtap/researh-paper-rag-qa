@@ -12,3 +12,5 @@ pymupdf
 openai
 python-dotenv
 streamlit
+rank-bm25
+networkx
