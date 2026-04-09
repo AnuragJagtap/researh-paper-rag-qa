@@ -9,7 +9,6 @@ from textblob import TextBlob
 def main():
     print("\n🚀 Research Paper Graph RAG System\n")
 
-    # 🔹 Load components
     print("🔷 Loading system...")
 
     embedder = Embedder()
@@ -19,8 +18,13 @@ def main():
 
     generator = Generator()
 
-    # 🔹 Initialize graph (assumes already built in memory or extend later to load)
+    # 🔹 Load graph (ensure you implemented load method)
     graph_store = GraphStore()
+    try:
+        graph_store.load()
+        print("✅ Graph loaded")
+    except:
+        print("⚠️ Graph not loaded (continuing without graph)")
 
     print("✅ System ready!\n")
 
@@ -50,25 +54,25 @@ def main():
         # 🔹 Step 3: Embed query
         query_embedding = embedder.encode([corrected_query])
 
-        # 🔹 Step 4: Hybrid retrieval (FAISS + BM25)
+        # 🔹 Step 4: Hybrid retrieval
         vector_results = vector_store.search(query_embedding, corrected_query, k=5)
 
         # 🔹 Step 5: Graph retrieval
         graph_results = graph_store.query(corrected_query)
 
-        # 🔹 Step 6: Combine contexts
+        # 🔹 Step 6: Combine results
         combined_results = vector_results.copy()
 
-        for gr in graph_results[:2]:  # limit graph results
+        for gr in graph_results[:2]:
             combined_results.append({
                 "text": gr,
                 "metadata": {"source": "graph"}
             })
 
         # 🔹 Step 7: Generate answer
-        answer = generator.generate_answer(corrected_query, combined_results)
+        answer, source_map = generator.generate_answer(corrected_query, combined_results)
 
-        # 🔹 Output
+        # 🔹 Output answer
         print("\n" + "=" * 60)
         print("🧠 ANSWER")
         print("=" * 60)
@@ -81,8 +85,12 @@ def main():
             "not enough information"
         ]):
             print("\n📚 SOURCES")
-            for res in combined_results:
-                print(f"- {res['metadata']['source']}")
+
+            # Sort sources by ID
+            sorted_sources = sorted(source_map.items(), key=lambda x: x[1])
+
+            for source, source_id in sorted_sources:
+                print(f"[Source {source_id}] {source}")
 
         print("=" * 60 + "\n")
 

@@ -10,7 +10,7 @@ class Generator:
         api_key = os.getenv("OPENROUTER_API_KEY")
 
         if api_key is None:
-            raise ValueError("❌ OPENROUTER_API_KEY not found in environment variables")
+            raise ValueError("❌ OPENROUTER_API_KEY not found")
 
         self.client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -19,8 +19,36 @@ class Generator:
 
         self.model = model
 
+    def build_context(self, retrieved_docs):
+        """
+        Builds context and creates consistent source mapping
+        """
+        context = ""
+        source_map = {}
+        source_counter = 1
+
+        for doc in retrieved_docs:
+            source = doc["metadata"].get("source", "unknown")
+
+            # Skip graph in citation numbering
+            if source != "graph":
+                if source not in source_map:
+                    source_map[source] = source_counter
+                    source_counter += 1
+
+                source_id = source_map[source]
+                context += f"[Source {source_id}]\n{doc['text']}\n\n"
+            else:
+                context += f"[Graph]\n{doc['text']}\n\n"
+
+        return context, source_map
+
     def generate_answer(self, query, retrieved_docs):
-        context = "\n\n".join([doc["text"] for doc in retrieved_docs])
+        """
+        Generate answer + return source mapping
+        """
+
+        context, source_map = self.build_context(retrieved_docs)
 
         prompt = f"""
 You are an AI assistant answering questions based ONLY on the provided context.
@@ -32,15 +60,15 @@ Question:
 {query}
 
 Instructions:
-- Provide a detailed answer
-- Structure your response as:
+- Provide a detailed and well-structured answer
+- Use citations like [Source 1], [Source 2] wherever relevant
+- Do NOT make up citations
+- Use only the given sources
+- Structure answer as:
     1. Definition / Overview
     2. Key Explanation
     3. Important Points (if applicable)
-- Keep it clear and informative (5-8 sentences)
-- Do NOT hallucinate
-- If not found, say: "I don't know based on the provided documents"
-
+- If the answer is not present, say: "I don't know based on the provided documents"
 
 Answer:
 """
@@ -50,7 +78,9 @@ Answer:
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2
+            temperature=0.4
         )
 
-        return response.choices[0].message.content.strip()
+        answer = response.choices[0].message.content.strip()
+
+        return answer, source_map
